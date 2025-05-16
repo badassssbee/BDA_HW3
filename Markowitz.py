@@ -1,6 +1,10 @@
 """
 Package Import
 """
+
+
+
+
 import yfinance as yf
 import numpy as np
 import pandas as pd
@@ -9,6 +13,7 @@ import quantstats as qs
 import gurobipy as gp
 import argparse
 import warnings
+
 
 """
 Project Setup
@@ -61,7 +66,11 @@ class EqualWeightPortfolio:
         """
         TODO: Complete Task 1 Below
         """
+        num_assets = len(assets)
+        equal_weight = 1.0 / num_assets
 
+        self.portfolio_weights[assets] = equal_weight
+        self.portfolio_weights[self.exclude] = 0.0
         """
         TODO: Complete Task 1 Above
         """
@@ -112,7 +121,16 @@ class RiskParityPortfolio:
         """
         TODO: Complete Task 2 Below
         """
+        for i in range(self.lookback, len(df)):
+            returns_window = df_returns[assets].iloc[i - self.lookback:i]
+            vol = returns_window.std()
 
+            inv_vol = 1.0 / vol
+            weights = inv_vol / inv_vol.sum()
+
+            self.portfolio_weights.loc[df.index[i], assets] = weights.values
+
+        self.portfolio_weights[self.exclude] = 0.0
         """
         TODO: Complete Task 2 Above
         """
@@ -184,12 +202,13 @@ class MeanVariancePortfolio:
                 """
                 TODO: Complete Task 3 Below
                 """
+                w = model.addMVar(n, name="w", lb=0.0, ub=1.0)
 
-                # Sample Code: Initialize Decision w and the Objective
-                # NOTE: You can modify the following code
-                w = model.addMVar(n, name="w", ub=1)
-                model.setObjective(w.sum(), gp.GRB.MAXIMIZE)
+                mean_return = mu @ w
+                risk = w @ Sigma @ w
+                model.setObjective(mean_return - gamma * risk, gp.GRB.MAXIMIZE)
 
+                model.addConstr(w.sum() == 1, name="weight_sum")
                 """
                 TODO: Complete Task 3 Above
                 """
