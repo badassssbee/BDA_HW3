@@ -141,8 +141,6 @@ class RiskParityPortfolio:
             # assign using exact date index
             self.portfolio_weights.loc[date] = row
 
-
-        
         """
         TODO: Complete Task 2 Above
         """
@@ -150,11 +148,6 @@ class RiskParityPortfolio:
         self.portfolio_weights = self.portfolio_weights.astype(np.float64)
         self.portfolio_weights.ffill(inplace=True)
         self.portfolio_weights.fillna(0.0, inplace=True)
-
-        
-
-
-
 
 
     def calculate_portfolio_returns(self):
@@ -393,7 +386,6 @@ class AssignmentJudge:
 
         self.eqw = EqualWeightPortfolio("SPY").get_results()[0]
         self.rp = RiskParityPortfolio("SPY").get_results()[0]
-        self.rp.to_csv("rp_debug_output.txt", float_format="%.8f", sep="\t")
         self.mv_list = [
             MeanVariancePortfolio("SPY").get_results()[0],
             MeanVariancePortfolio("SPY", gamma=100).get_results()[0],
@@ -447,7 +439,6 @@ class AssignmentJudge:
         return 0
 
     def check_answer_rp(self, rp_dataframe):
-        rp_dataframe.to_csv("rp_weights_output.txt", sep="\t", index=True)
 
         answer_dataframe = pd.read_pickle(self.rp_path)
         if self.compare_dataframe(answer_dataframe, rp_dataframe):
