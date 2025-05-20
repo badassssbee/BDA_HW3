@@ -136,15 +136,18 @@ class RiskParityPortfolio:
         self.portfolio_weights[self.exclude] = 0.0
         """
         for i in range(self.lookback, len(df)):
-            # ❶ use the most-recent `lookback` daily returns (inclusive of today)
-            window = df_returns[assets].iloc[i - self.lookback + 1 : i + 1]
-    
-            # ❷ population σ (ddof=0) → inverse-vol weights
-            vol  = window.std(ddof=0)
-            w_iv = (1.0 / vol) / (1.0 / vol).sum()
-    
-            # ❸ write the weights for this date
-            self.portfolio_weights.loc[df.index[i], assets] = w_iv.to_numpy()
+            # 1) look-back window *excluding* today (i is exclusive)
+            window = df_returns[assets].iloc[i - self.lookback : i]
+
+            # 2) calculate volatility and inverse-vol weights
+            vol = window.std()                 # sample stdev (ddof = 1)
+            inv_vol = 1.0 / vol
+            weights = inv_vol / inv_vol.sum()  # normalise to 1
+
+            # 3) write an entire weight row (incl. SPY = 0)
+            row = pd.Series(0.0, index=df.columns)
+            row[assets] = weights
+            self.portfolio_weights.loc[df.index[i]] = row
         """
         TODO: Complete Task 2 Above
         """
