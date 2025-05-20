@@ -69,31 +69,33 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
+        top_n = 5                       # pick the 5 best-scored ETFs
         for i in range(self.lookback, len(self.price)):
-            window_returns = self.returns[assets].iloc[i - self.lookback:i]
+            window_returns = self.returns[assets].iloc[i - self.lookback : i]
 
-            # 1. Mean and volatility
-            mu = window_returns.mean()
-            sigma = window_returns.std(ddof=1)
+            # cumulative momentum over look-back window
+            momentum = (1.0 + window_returns).prod() - 1.0
 
-            # 2. Adjust zero-vol to avoid division by 0
-            sigma[sigma == 0] = 1e-6
+            # volatility (sample stdev) and numerical safety
+            vol = window_returns.std(ddof=0)
+            vol[vol == 0] = 1e-6
 
-            # 3. Sharpe-like score
-            score = mu / sigma
+            # Sharpe-like score
+            score = momentum / vol
 
-            # 4. Apply drawdown penalty
-            cum_return = (1 + window_returns).cumprod()
-            max_drawdown = (cum_return / cum_return.cummax() - 1).min()
-            penalty = max_drawdown.abs().clip(upper=0.5)
-            score = score - 0.5 * penalty
+            # select top-N positive assets
+            selected = score[score > 0].sort_values(ascending=False).head(top_n)
+            if selected.empty:
+                continue                                    # no allocation this day
 
-            # 5. Keep only positive-scoring assets
-            score[score < 0] = 0
+            # inverse-volatility (risk-parity) weights for the selection
+            inv_vol = 1.0 / vol[selected.index]
+            weights = inv_vol / inv_vol.sum()
 
-            if score.sum() > 0:
-                weights = score / score.sum()
-                self.portfolio_weights.loc[self.price.index[i], weights.index] = weights.values
+            # write the full weight row (other assets default NaN → ffill later)
+            self.portfolio_weights.loc[self.price.index[i], selected.index] = weights.values
+
+        # always keep SPY at zero weight
         self.portfolio_weights[self.exclude] = 0.0
         """
         TODO: Complete Task 4 Above
