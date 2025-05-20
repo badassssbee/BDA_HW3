@@ -69,35 +69,42 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
-        top_n = 5                       # pick the 5 best-scored ETFs
+        top_n = 5
         for i in range(self.lookback, len(self.price)):
+            date = self.price.index[i]
             window_returns = self.returns[assets].iloc[i - self.lookback : i]
 
-            # cumulative momentum over look-back window
+            # 1. compute total return over lookback (momentum)
             momentum = (1.0 + window_returns).prod() - 1.0
 
-            # volatility (sample stdev) and numerical safety
+            # 2. compute volatility (sample std)
             vol = window_returns.std(ddof=0)
-            vol[vol == 0] = 1e-6
+            vol[vol == 0] = 1e-6  # numerical safety
 
-            # Sharpe-like score
+            # 3. rank by momentum/volatility (Sharpe-like)
             score = momentum / vol
 
-            # select top-N positive assets
-            selected = score[score > 0].sort_values(ascending=False).head(top_n)
-            if selected.empty:
-                continue                                    # no allocation this day
+            # 4. top-N assets
+            top_assets = score[score > 0].sort_values(ascending=False).head(top_n)
+            if top_assets.empty:
+                continue
 
-            # inverse-volatility (risk-parity) weights for the selection
-            inv_vol = 1.0 / vol[selected.index]
-            weights = inv_vol / inv_vol.sum()
+            # 5. final weights: combine momentum and inverse-vol
+            selected_returns = window_returns[top_assets.index]
+            cum_return = (1.0 + selected_returns).prod() - 1.0
+            vol_sel = selected_returns.std(ddof=0)
 
-            # write the full weight row (other assets default NaN → ffill later)
-            row = pd.Series(0.0, index=self.price.columns)   # ➊ start with all-zero row
-            row[selected.index] = weights.values             # ➋ add weights only for picks
-            self.portfolio_weights.loc[self.price.index[i]] = row
+            # performance-weighted score
+            perf_score = cum_return / vol_sel
+            perf_score[perf_score < 0] = 0
+            weights = perf_score / perf_score.sum()
 
-        # always keep SPY at zero weight
+            # 6. assign weight row
+            row = pd.Series(0.0, index=self.price.columns)
+            row[weights.index] = weights.values
+            self.portfolio_weights.loc[date] = row
+
+        # set SPY to zero
         self.portfolio_weights[self.exclude] = 0.0
         """
         TODO: Complete Task 4 Above
