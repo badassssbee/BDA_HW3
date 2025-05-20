@@ -128,7 +128,9 @@ class RiskParityPortfolio:
             inv_vol = 1.0 / vol
             weights = inv_vol / inv_vol.sum()
 
-            self.portfolio_weights.loc[df.index[i], assets] = weights.values
+            row_weights = pd.Series(0.0, index=df.columns)
+            row_weights[assets] = weights
+            self.portfolio_weights.loc[df.index[i]] = row_weights
 
         self.portfolio_weights[self.exclude] = 0.0
         """
@@ -202,6 +204,7 @@ class MeanVariancePortfolio:
                 """
                 TODO: Complete Task 3 Below
                 """
+                """
                 w = model.addMVar(n, name="w", lb=0.0, ub=1.0)
 
                 mean_return = mu @ w
@@ -209,6 +212,17 @@ class MeanVariancePortfolio:
                 model.setObjective(mean_return - gamma * risk, gp.GRB.MAXIMIZE)
 
                 model.addConstr(w.sum() == 1, name="weight_sum")
+                """
+                # ❶ decision vector w  (long-only; no explicit upper bound needed)
+                w = model.addMVar(n, lb=0.0, name="w")
+
+                # ❷ objective  (maximise return minus risk penalty)
+                mean_ret = mu @ w
+                risk_term = 0.5 * (w @ Sigma @ w)          # ½ · wᵀΣw
+                model.setObjective(mean_ret - gamma * risk_term, gp.GRB.MAXIMIZE)
+
+                # ❸ fully-invested constraint
+                model.addConstr(w.sum() == 1.0, name="budget")
                 """
                 TODO: Complete Task 3 Above
                 """
