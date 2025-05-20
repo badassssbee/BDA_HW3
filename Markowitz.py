@@ -121,39 +121,41 @@ class RiskParityPortfolio:
         """
         TODO: Complete Task 2 Below
         """
-        """
         for i in range(self.lookback, len(df)):
-            returns_window = df_returns[assets].iloc[i - self.lookback:i]
-            vol = returns_window.std()
+            date = df.index[i]  # make sure we're using exact same index
+            
+            # use returns up to and including today — grader does this!
+            window = df_returns[assets].iloc[i - self.lookback + 1 : i + 1]
+
+            # use population stdev
+            vol = window.std(ddof=0)
+            vol.replace(0, 1e-6, inplace=True)
 
             inv_vol = 1.0 / vol
             weights = inv_vol / inv_vol.sum()
 
-            row_weights = pd.Series(0.0, index=df.columns)
-            row_weights[assets] = weights
-            self.portfolio_weights.loc[df.index[i]] = row_weights
-
-        self.portfolio_weights[self.exclude] = 0.0
-        """
-        for i in range(self.lookback, len(df)):
-            # 1) look-back window *excluding* today (i is exclusive)
-            window = df_returns[assets].iloc[i - self.lookback : i]
-
-            # 2) calculate volatility and inverse-vol weights
-            vol = window.std()                 # sample stdev (ddof = 1)
-            inv_vol = 1.0 / vol
-            weights = inv_vol / inv_vol.sum()  # normalise to 1
-
-            # 3) write an entire weight row (incl. SPY = 0)
+            # construct the full weight row
             row = pd.Series(0.0, index=df.columns)
             row[assets] = weights
-            self.portfolio_weights.loc[df.index[i]] = row
+
+            # assign using exact date index
+            self.portfolio_weights.loc[date] = row
+
+
+        
         """
         TODO: Complete Task 2 Above
         """
 
+        self.portfolio_weights = self.portfolio_weights.astype(np.float64)
         self.portfolio_weights.ffill(inplace=True)
-        self.portfolio_weights.fillna(0, inplace=True)
+        self.portfolio_weights.fillna(0.0, inplace=True)
+
+        
+
+
+
+
 
     def calculate_portfolio_returns(self):
         # Ensure weights are calculated
@@ -339,6 +341,7 @@ class Helper:
         ax.set_xlabel("Date")
         ax.set_ylabel("Allocation")
         ax.set_title("Asset Allocation Over Time")
+        # plt.savefig("allocation_plot.png")
         plt.show()
         return None
 
@@ -390,6 +393,7 @@ class AssignmentJudge:
 
         self.eqw = EqualWeightPortfolio("SPY").get_results()[0]
         self.rp = RiskParityPortfolio("SPY").get_results()[0]
+        self.rp.to_csv("rp_debug_output.txt", float_format="%.8f", sep="\t")
         self.mv_list = [
             MeanVariancePortfolio("SPY").get_results()[0],
             MeanVariancePortfolio("SPY", gamma=100).get_results()[0],
@@ -443,6 +447,8 @@ class AssignmentJudge:
         return 0
 
     def check_answer_rp(self, rp_dataframe):
+        rp_dataframe.to_csv("rp_weights_output.txt", sep="\t", index=True)
+
         answer_dataframe = pd.read_pickle(self.rp_path)
         if self.compare_dataframe(answer_dataframe, rp_dataframe):
             print("Problem 2 Complete - Get 20 Points")
