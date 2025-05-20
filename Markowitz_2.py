@@ -69,42 +69,46 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
-        top_n = 5
+        top_n        = 5        # number of sectors to hold when risk-ON
+        sma_window   = 200      # SPY trend filter (≈ 10 trading months)
+        # ──────────────────────────────────────────────────────────────
+        spy_sma = self.price["SPY"].rolling(sma_window).mean()
+
         for i in range(self.lookback, len(self.price)):
             date = self.price.index[i]
-            window_returns = self.returns[assets].iloc[i - self.lookback : i]
 
-            # 1. compute total return over lookback (momentum)
-            momentum = (1.0 + window_returns).prod() - 1.0
-
-            # 2. compute volatility (sample std)
-            vol = window_returns.std(ddof=0)
-            vol[vol == 0] = 1e-6  # numerical safety
-
-            # 3. rank by momentum/volatility (Sharpe-like)
-            score = momentum / vol
-
-            # 4. top-N assets
-            top_assets = score[score > 0].sort_values(ascending=False).head(top_n)
-            if top_assets.empty:
-                continue
-
-            # 5. final weights: combine momentum and inverse-vol
-            selected_returns = window_returns[top_assets.index]
-            cum_return = (1.0 + selected_returns).prod() - 1.0
-            vol_sel = selected_returns.std(ddof=0)
-
-            # performance-weighted score
-            perf_score = cum_return / vol_sel
-            perf_score[perf_score < 0] = 0
-            weights = perf_score / perf_score.sum()
-
-            # 6. assign weight row
+            # 0) build an all-zero row first
             row = pd.Series(0.0, index=self.price.columns)
-            row[weights.index] = weights.values
+
+            # 1) determine risk regime
+            risk_on = True
+            if i >= sma_window:                       # need enough data for SMA
+                risk_on = self.price["SPY"].iloc[i] > spy_sma.iloc[i]
+
+            if risk_on:  # ──────────────  RISK-ON  ──────────────
+                window = self.returns[assets].iloc[i - self.lookback : i]
+
+                # momentum & volatility
+                momentum = (1.0 + window).prod() - 1.0
+                vol      = window.std(ddof=0)
+                vol[vol == 0] = 1e-6
+
+                score = momentum / vol
+
+                # select top-N positive assets
+                picks = score[score > 0].sort_values(ascending=False).head(top_n)
+                if not picks.empty:
+                    inv_vol = 1.0 / vol[picks.index]
+                    weights = inv_vol / inv_vol.sum()
+                    row[picks.index] = weights.values
+
+            else:         # ──────────────  RISK-OFF  ─────────────
+                row["XLU"] = 1.0           # defensive Utilities sector
+
+            # 2) write the row
             self.portfolio_weights.loc[date] = row
 
-        # set SPY to zero
+        # 3) always keep SPY at precisely zero weight
         self.portfolio_weights[self.exclude] = 0.0
         """
         TODO: Complete Task 4 Above
