@@ -93,7 +93,9 @@ class MyPortfolio:
             weights = inv_vol / inv_vol.sum()
 
             # write the full weight row (other assets default NaN → ffill later)
-            self.portfolio_weights.loc[self.price.index[i], selected.index] = weights.values
+            row = pd.Series(0.0, index=self.price.columns)   # ➊ start with all-zero row
+            row[selected.index] = weights.values             # ➋ add weights only for picks
+            self.portfolio_weights.loc[self.price.index[i]] = row
 
         # always keep SPY at zero weight
         self.portfolio_weights[self.exclude] = 0.0
