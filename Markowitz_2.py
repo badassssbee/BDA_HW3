@@ -162,8 +162,7 @@ class AssignmentJudge:
         ax.set_xlabel("Date")
         ax.set_ylabel("Cumulative Returns")
         ax.legend()
-        plt.savefig("performance_plot.png")
-        # plt.show()
+        plt.show()
         return None
 
     def plot_allocation(self, df_weights):
@@ -178,8 +177,7 @@ class AssignmentJudge:
         ax.set_xlabel("Date")
         ax.set_ylabel("Allocation")
         ax.set_title("Asset Allocation Over Time")
-        plt.savefig("allocation_plot.png")
-        # plt.show()
+        plt.show()
         return None
 
     def report_metrics(self, price, strategy, show=False):
