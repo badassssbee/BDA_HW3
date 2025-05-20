@@ -50,7 +50,7 @@ class MyPortfolio:
     NOTE: You can modify the initialization function
     """
 
-    def __init__(self, price, exclude, lookback=50, gamma=0):
+    def __init__(self, price, exclude, lookback=40, gamma=0):
         self.price = price
         self.returns = price.pct_change().fillna(0)
         self.exclude = exclude
@@ -69,7 +69,7 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
-        top_n        = 5        # number of sectors to hold when risk-ON
+        top_n        = 7        # number of sectors to hold when risk-ON
         sma_window   = 200      # SPY trend filter (≈ 10 trading months)
         # ──────────────────────────────────────────────────────────────
         spy_sma = self.price["SPY"].rolling(sma_window).mean()
@@ -102,8 +102,8 @@ class MyPortfolio:
                     weights = inv_vol / inv_vol.sum()
                     row[picks.index] = weights.values
 
-            else:         # ──────────────  RISK-OFF  ─────────────
-                row["XLU"] = 1.0           # defensive Utilities sector
+            #else:         # ──────────────  RISK-OFF  ─────────────
+            #    row["XLU"] = 1.0           # defensive Utilities sector
 
             # 2) write the row
             self.portfolio_weights.loc[date] = row
@@ -162,7 +162,8 @@ class AssignmentJudge:
         ax.set_xlabel("Date")
         ax.set_ylabel("Cumulative Returns")
         ax.legend()
-        plt.show()
+        plt.savefig("performance_plot.png")
+        # plt.show()
         return None
 
     def plot_allocation(self, df_weights):
@@ -177,7 +178,8 @@ class AssignmentJudge:
         ax.set_xlabel("Date")
         ax.set_ylabel("Allocation")
         ax.set_title("Asset Allocation Over Time")
-        plt.show()
+        plt.savefig("allocation_plot.png")
+        # plt.show()
         return None
 
     def report_metrics(self, price, strategy, show=False):
