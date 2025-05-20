@@ -70,7 +70,7 @@ class MyPortfolio:
         TODO: Complete Task 4 Below
         """
         for i in range(self.lookback, len(self.price)):
-        window_returns = self.returns[assets].iloc[i - self.lookback:i]
+            window_returns = self.returns[assets].iloc[i - self.lookback:i]
 
         mean_return = window_returns.mean()
         volatility = window_returns.std()
