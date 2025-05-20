@@ -69,7 +69,26 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
+        for i in range(self.lookback, len(self.price)):
+        window_returns = self.returns[assets].iloc[i - self.lookback:i]
 
+        mean_return = window_returns.mean()
+        volatility = window_returns.std()
+
+        volatility[volatility == 0] = 1e-6
+
+        score = mean_return / volatility
+
+        drawdown_penalty = (window_returns.cumprod().min() - 1).abs()
+        score -= 0.5 * drawdown_penalty
+
+        positive_score = score[score > 0]
+
+        if not positive_score.empty:
+            weights = positive_score / positive_score.sum()
+            self.portfolio_weights.loc[self.price.index[i], weights.index] = weights.values
+
+        self.portfolio_weights[self.exclude] = 0.0
         """
         TODO: Complete Task 4 Above
         """
